@@ -22,12 +22,17 @@ class Game:
         self.quoteText = None
         self.quoteAuthor = None
         self.bioURL = None
+        try:
+            self._readCSV()
+        except FileNotFoundError:
+            print('No CSV file found, please import the data')
+        self.baseURL = 'http://quotes.toscrape.com/'
+
+    def _readCSV(self):
         with open('quotes.csv', 'r', encoding="utf-8") as csvFile:
             self.csvReader = csv.reader(csvFile)
             # transforms the csv file into a list for each row NOT including the header
             self.lines = [row for row in self.csvReader][1:]
-        self.baseURL = 'http://quotes.toscrape.com/'
-        self._initGame()
 
     def fetchData(self):
         """
@@ -55,6 +60,7 @@ class Game:
                         # the csv file
                         for quote in self.quotes:
                             pbar.update(1)
+                            sleep(0.01)
                             self.quoteText = quote.find(class_='text').getText()
                             # print(quoteText)
                             self.quoteAuthor = quote.find(class_='author').getText()
@@ -68,6 +74,7 @@ class Game:
                             self.URL = nextBtn.find('a')['href']
                         else:
                             self.URL = ''
+            self._readCSV()
 
     def playGame(self):
         """
@@ -75,6 +82,7 @@ class Game:
         The first failed guess gives them a hint of their date of birth. The second tells the user
         the author's birth location and the 3rd failed guess gives the authors initials.
         """
+        self._initGame()
         print('Starting game...')
         print(f'Who said: {self.quote}?\n')
         while self.guesses > 0:
@@ -110,7 +118,6 @@ class Game:
         playAgain = input('Do you want to play again? y/n  ')
         if playAgain.lower() == 'y':
             # picks a new quote from the list and finds its corresponding data, then starts the game
-            self._initGame()
             self.playGame()
         else:
             print('Thanks for playing!')
@@ -122,23 +129,19 @@ class Game:
         play the game
         """
         # translates the csv into their own variables to be outputted
-        self.rndQuote = choice(self.lines)
-        self.quote = self.rndQuote[0]
-        self.author = self.rndQuote[1]
-        self.bioLink = self.rndQuote[2]
-        self.guesses = 4
-        self.authorFirstInitial = self.author[0]
-        # creates a list of each word in the authors name and selects the first letter from the last word
-        self.authorSecondInitial = self.author.split()[-1][0]
-        self.authorInfo = requests.get(self.baseURL + self.bioLink)
-        self.authorSoup = BeautifulSoup(self.authorInfo.text, "html.parser")
-        self.birthDate = self.authorSoup.find(class_='author-born-date').getText()
-        self.birthLocation = self.authorSoup.find(class_='author-born-location').getText()
-
-
-# loading bars in the terminal rather than writing
-# unit testing using pytest and make code robust! check timeouts and user inputs
-# add a readme file, a small paragraph or two. markdown file (.md) or ascii (.adoc)
+        if self.lines:
+            self.rndQuote = choice(self.lines)
+            self.quote = self.rndQuote[0]
+            self.author = self.rndQuote[1]
+            self.bioLink = self.rndQuote[2]
+            self.guesses = 4
+            self.authorFirstInitial = self.author[0]
+            # creates a list of each word in the authors name and selects the first letter from the last word
+            self.authorSecondInitial = self.author.split()[-1][0]
+            self.authorInfo = requests.get(self.baseURL + self.bioLink)
+            self.authorSoup = BeautifulSoup(self.authorInfo.text, "html.parser")
+            self.birthDate = self.authorSoup.find(class_='author-born-date').getText()
+            self.birthLocation = self.authorSoup.find(class_='author-born-location').getText()
 
 
 if __name__ == '__main__':
